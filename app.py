@@ -11,18 +11,18 @@ st.set_page_config(
     layout="centered"
 )
 
-# Estilo para logos
+# Estilo para mejorar la visualización de imágenes
 st.markdown("<style> .stImage {display: block; margin-left: auto; margin-right: auto;} </style>", unsafe_allow_html=True)
 
 # ==========================================
-# 2. BARRA LATERAL (IDENTIDAD)
+# 2. BARRA LATERAL (LOGOS E INSTRUCCIONES)
 # ==========================================
 with st.sidebar:
     try:
         st.image("SILC Logo.png", use_container_width=True)
         st.image("Rubio Intelligence Systems Logo.png", use_container_width=True)
     except:
-        pass
+        st.warning("Verifique que los archivos .png estén en la raíz de GitHub.")
     
     st.divider()
     st.markdown("### 📖 Instrucciones de Uso")
@@ -34,7 +34,7 @@ with st.sidebar:
     st.caption("© 2026 Rubio Intelligence Systems")
 
 # ==========================================
-# 3. LÓGICA DE BLOQUEO (UNA SOLA PREGUNTA)
+# 3. LÓGICA DE BLOQUEO (NUEVO)
 # ==========================================
 if "demo_finalizada" not in st.session_state:
     st.session_state.demo_finalizada = False
@@ -43,14 +43,15 @@ st.title("⚖️ SILC")
 st.markdown("#### *Certeza jurídica con profundidad histórica*")
 st.divider()
 
-# Muro de pago si ya se hizo la pregunta
+# Muro de pago si la consulta ya fue realizada
 if st.session_state.demo_finalizada:
     st.error("### 🛑 CONSULTA DE CORTESÍA AGOTADA")
     st.markdown("""
     Estimado colega, ha completado su prueba gratuita. Para acceder de forma ilimitada 
     a los **124,000 registros**, análisis comparativos y descarga de fichas técnicas:
     """)
-    st.link_button("🚀 ADQUIRIR SUSCRIPCIÓN PROFESIONAL", "https://silcmexico.com")
+    # REDIRECCIONAMIENTO ACTUALIZADO
+    st.link_button("🚀 ADQUIRIR SUSCRIPCIÓN PROFESIONAL", "https://silcmexico.com/planes")
     st.stop()
 
 # ==========================================
@@ -59,23 +60,23 @@ if st.session_state.demo_finalizada:
 try:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
     model = genai.GenerativeModel('gemini-3-flash-preview')
+    
     pc = Pinecone(api_key=st.secrets["PINECONE_API_KEY"])
     index = pc.Index("galaxia-de-datos")
 except Exception as e:
-    st.error("Error de conexión técnica. Verifique sus Secrets.")
+    st.error(f"Error de configuración técnica: {e}")
 
 # ==========================================
-# 5. PROCESAMIENTO DE LA PREGUNTA ÚNICA
+# 5. PROCESAMIENTO DE CONSULTAS (RAG)
 # ==========================================
-if prompt := st.chat_input("Escriba su pregunta de prueba aquí..."):
-    # Mostramos la pregunta del usuario
+if prompt := st.chat_input("Realice su consulta jurídica de prueba..."):
     with st.chat_message("user"):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
         try:
             with st.spinner("Consultando registros del SILC..."):
-                # 1. Búsqueda Vectorial
+                # Búsqueda Vectorial
                 res_embed = pc.inference.embed(
                     model="multilingual-e5-large",
                     inputs=[prompt],
@@ -91,20 +92,19 @@ if prompt := st.chat_input("Escriba su pregunta de prueba aquí..."):
                 
                 contexto_legal = "\n\n".join([m['metadata']['text'] for m in query_res['matches']])
 
-                # 2. Generación de Respuesta con Rigor
                 instruccion = (
                     f"Eres el SILC. Tu lema es 'Certeza jurídica con profundidad histórica'. "
-                    f"Responde con altísimo rigor académico y legal basándote en este contexto:\n\n"
+                    f"Analiza con rigor lo siguiente basándote en este contexto:\n\n"
                     f"{contexto_legal}\n\nPregunta: {prompt}"
                 )
 
                 response = model.generate_content(instruccion)
                 st.markdown(response.text)
                 
-                # 3. ACTIVAR EL BLOQUEO PERMANENTE
+                # ACTIVACIÓN DEL BLOQUEO
                 st.session_state.demo_finalizada = True
                 st.success("Análisis completado exitosamente.")
-                st.toast("Ha agotado su consulta de cortesía.")
-                
+                st.toast("Prueba finalizada.")
+
         except Exception as e:
-            st.error(f"Error en el procesamiento: {str(e)}")
+            st.error(f"Aviso del Sistema: {str(e)}")
