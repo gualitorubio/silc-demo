@@ -1,54 +1,69 @@
 import streamlit as st
-import requests # Para conectar con el CRM y la base de datos
+import pandas as pd
 
-# --- 1. FUNCIÓN DE BLOQUEO PERMANENTE ---
-# (Aquí conectaríamos con tu base de datos de WhatsApps usados)
-def usuario_ya_consulto(whatsapp):
-    # Esta función revisará si el número existe en tu lista de MailingBoss o Google Sheets
-    # Por ahora, simularemos la lógica de sesión, pero para producción usaremos tu CRM
-    if "lista_negra" not in st.session_state:
-        st.session_state.lista_negra = []
-    return whatsapp in st.session_state.lista_negra
+# --- CONFIGURACIÓN DE PÁGINA ---
+st.set_page_config(page_title="SILC Demo - Rubio Intelligence Systems", layout="wide")
 
-# --- 2. MURO DE ACCESO ---
-if 'autorizado' not in st.session_state:
-    st.session_state.autorizado = False
+# Carga de Logos (Deben estar en la raíz de tu GitHub)
+st.sidebar.image("SILC Logo.png", use_container_width=True)
+st.sidebar.image("Rubio Intelligence Systems Logo.png", use_container_width=True)
 
-if not st.session_state.autorizado:
-    st.title("⚖️ SILC - Modo de Prueba")
-    perfil = st.radio("Identifíquese:", ["Docente (Acceso Total)", "Abogado (Prueba Única)"])
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 📖 Instrucciones")
+st.sidebar.info("1. Ingrese su consulta.\n2. Espere el análisis técnico.\n3. Su prueba de cortesía es de una sola consulta.")
+
+st.sidebar.markdown("---")
+st.sidebar.markdown("**Director**")
+st.sidebar.write("Doctorando Carlos Rubio")
+st.sidebar.caption("© 2026 Rubio Intelligence Systems")
+
+# --- CONTROL DE ACCESO ---
+if 'acceso' not in st.session_state:
+    st.session_state.acceso = False
+
+if not st.session_state.acceso:
+    st.title("⚖️ SILC: Sistema de Inteligencia Legal y Contexto")
+    opcion = st.radio("Identifíquese:", ["Invitado VIP (Docente)", "Prueba Gratuita (Abogado)"])
     
-    if perfil == "Docente (Acceso Total)":
+    if opcion == "Invitado VIP (Docente)":
         clave = st.text_input("Clave Institucional:", type="password")
         if st.button("Entrar"):
-            if clave == "SILC_UNIVERSIDAD_2026":
-                st.session_state.autorizado = True
+            if clave == "SILC_UNAM_2026": # Puedes cambiar esta clave
+                st.session_state.acceso = True
                 st.session_state.rol = "VIP"
                 st.rerun()
     else:
-        nombre = st.text_input("Nombre:")
-        whatsapp = st.text_input("WhatsApp (con prefijo +52):")
-        if st.button("Iniciar mi única consulta gratis"):
-            if usuario_ya_consulto(whatsapp):
-                st.error("Usted ya ha agotado su prueba gratuita.")
-                st.info("Suscríbase en silcmexico.com para acceso ilimitado.")
-                st.stop()
-            else:
-                st.session_state.autorizado = True
+        wa = st.text_input("WhatsApp (10 dígitos):")
+        if st.button("Iniciar Consulta"):
+            if len(wa) >= 10:
+                st.session_state.acceso = True
                 st.session_state.rol = "LEAD"
-                st.session_state.wa = whatsapp
+                st.session_state.wa = wa
                 st.rerun()
     st.stop()
 
-# --- 3. RESTRICCIÓN DE UNA SOLA PREGUNTA ---
+# --- BLOQUEO DE CONSULTA ÚNICA ---
 if st.session_state.rol == "LEAD":
-    if 'preguntas_contadas' not in st.session_state:
-        st.session_state.preguntas_contadas = 0
+    if 'usado' not in st.session_state:
+        st.session_state.usado = False
     
-    if st.session_state.preguntas_contadas >= 1:
-        st.warning("Prueba de cortesía finalizada.")
-        st.markdown("### 🛑 Para continuar, adquiere un Plan Profesional.")
+    if st.session_state.usado:
+        st.error("### 🛑 CONSULTA AGOTADA")
+        st.info("Doctor, ha agotado su prueba. Para continuar, adquiera un plan.")
+        st.link_button("Ir a Planes de Suscripción", "https://silcmexico.com")
         st.stop()
 
-# --- AQUÍ EMPIEZA TU CÓDIGO ORIGINAL DEL RAG ---
-# (Carga de Gemini 2.0 Flash, Pinecone, etc.)
+# --- ESPACIO PARA TU LÓGICA DE IA (GEMINI + PINECONE) ---
+st.title("🤖 Consulta Técnica SILC")
+user_query = st.chat_input("Realice su consulta aquí...")
+
+if user_query:
+    # Aquí es donde el sistema responde usando tus API Keys
+    with st.chat_message("assistant"):
+        st.write(f"Procesando consulta técnica para el número {st.session_state.get('wa', 'VIP')}...")
+        # (La respuesta de tu modelo iría aquí)
+        st.success("Respuesta generada con éxito.")
+    
+    if st.session_state.rol == "LEAD":
+        st.session_state.usado = True
+        st.toast("Prueba finalizada.")
